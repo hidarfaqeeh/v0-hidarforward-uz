@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram-forward-bot
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_IDS=${ADMIN_IDS}
+      - USE_WEBHOOK=${USE_WEBHOOK:-false}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TIMEZONE=${TIMEZONE:-Asia/Riyadh}
+    ports:
+      - "8443:8443"  # منفذ الويب هوك (إذا تم استخدامه)
+    networks:
+      - bot-network
+
+networks:
+  bot-network:
+    driver: bridge
