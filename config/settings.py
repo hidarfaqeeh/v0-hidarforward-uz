@@ -5,7 +5,7 @@ Bot Basic Settings
 
 import os
 from typing import List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class Settings:
@@ -23,9 +23,9 @@ class Settings:
     WEBHOOK_URL: str = os.getenv("WEBHOOK_URL", "")
     WEBHOOK_SECRET: str = os.getenv("WEBHOOK_SECRET", "")
     
-    # إعدادات المطورين والمشرفين
-    DEVELOPERS: List[int] = [int(x) for x in os.getenv("DEVELOPERS", "").split(",") if x.strip()]
-    ADMINS: List[int] = [int(x) for x in os.getenv("ADMINS", "").split(",") if x.strip()]
+    # إعدادات المطورين والمشرفين - استخدام default_factory
+    DEVELOPERS: List[int] = field(default_factory=list)
+    ADMINS: List[int] = field(default_factory=list)
     
     # إعدادات Premium
     PREMIUM_TRIAL_HOURS: int = int(os.getenv("PREMIUM_TRIAL_HOURS", "48"))
@@ -42,7 +42,17 @@ class Settings:
     BACKUP_INTERVAL_HOURS: int = int(os.getenv("BACKUP_INTERVAL_HOURS", "24"))
     
     def __post_init__(self):
-        """التحقق من الإعدادات المطلوبة"""
+        """التحقق من الإعدادات المطلوبة وتحميل القوائم"""
+        # تحميل قوائم المطورين والمشرفين
+        developers_str = os.getenv("DEVELOPERS", "")
+        if developers_str:
+            self.DEVELOPERS = [int(x) for x in developers_str.split(",") if x.strip()]
+    
+        admins_str = os.getenv("ADMINS", "")
+        if admins_str:
+            self.ADMINS = [int(x) for x in admins_str.split(",") if x.strip()]
+    
+        # باقي التحققات الموجودة
         if not self.BOT_TOKEN:
             raise ValueError("BOT_TOKEN مطلوب في متغيرات البيئة")
         
