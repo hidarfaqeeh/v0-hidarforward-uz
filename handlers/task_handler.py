@@ -11,7 +11,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from database.db_manager import DatabaseManager
 from config.keyboards import TaskKeyboards, ConfirmationKeyboards
-from config.messages import Messages
+from config.settings import Messages  # هذا هو الصحيح
 from utils.decorators import user_required, premium_required, error_handler, rate_limit
 from utils.helpers import DataValidator, TextProcessor
 from utils.logger import BotLogger
