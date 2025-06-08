@@ -5,75 +5,44 @@ Bot Basic Settings
 
 import os
 from typing import List, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 @dataclass
 class Settings:
     """إعدادات البوت"""
     
     # إعدادات البوت الأساسية
-    BOT_TOKEN: str = ""
-    BOT_USERNAME: str = ""
+    BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
+    BOT_USERNAME: str = os.getenv("BOT_USERNAME", "")
     
     # إعدادات قاعدة البيانات
-    DATABASE_URL: str = "sqlite:///bot_database.db"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///bot_database.db")
     
     # إعدادات الويب هوك
-    USE_WEBHOOK: bool = False
-    WEBHOOK_URL: str = ""
-    WEBHOOK_SECRET: str = ""
+    USE_WEBHOOK: bool = os.getenv("USE_WEBHOOK", "False").lower() == "true"
+    WEBHOOK_URL: str = os.getenv("WEBHOOK_URL", "")
+    WEBHOOK_SECRET: str = os.getenv("WEBHOOK_SECRET", "")
     
-    # إعدادات المطورين والمشرفين - استخدام default_factory
-    DEVELOPERS: List[int] = field(default_factory=list)
-    ADMINS: List[int] = field(default_factory=list)
+    # إعدادات المطورين والمشرفين
+    DEVELOPERS: List[int] = [int(x) for x in os.getenv("DEVELOPERS", "").split(",") if x.strip()]
+    ADMINS: List[int] = [int(x) for x in os.getenv("ADMINS", "").split(",") if x.strip()]
     
     # إعدادات Premium
-    PREMIUM_TRIAL_HOURS: int = 48
+    PREMIUM_TRIAL_HOURS: int = int(os.getenv("PREMIUM_TRIAL_HOURS", "48"))
     
     # إعدادات الإشعارات
-    NOTIFICATION_CHANNEL: Optional[int] = None
+    NOTIFICATION_CHANNEL: Optional[int] = int(os.getenv("NOTIFICATION_CHANNEL")) if os.getenv("NOTIFICATION_CHANNEL") else None
     
     # إعدادات الحماية من السبام
-    SPAM_PROTECTION: bool = True
-    MAX_MESSAGES_PER_MINUTE: int = 20
+    SPAM_PROTECTION: bool = os.getenv("SPAM_PROTECTION", "True").lower() == "true"
+    MAX_MESSAGES_PER_MINUTE: int = int(os.getenv("MAX_MESSAGES_PER_MINUTE", "20"))
     
     # إعدادات التخزين
-    BACKUP_ENABLED: bool = True
-    BACKUP_INTERVAL_HOURS: int = 24
+    BACKUP_ENABLED: bool = os.getenv("BACKUP_ENABLED", "True").lower() == "true"
+    BACKUP_INTERVAL_HOURS: int = int(os.getenv("BACKUP_INTERVAL_HOURS", "24"))
     
     def __post_init__(self):
-        """التحقق من الإعدادات المطلوبة وتحميل القيم من متغيرات البيئة"""
-        # تحميل القيم من متغيرات البيئة
-        self.BOT_TOKEN = os.getenv("BOT_TOKEN", self.BOT_TOKEN)
-        self.BOT_USERNAME = os.getenv("BOT_USERNAME", self.BOT_USERNAME)
-        self.DATABASE_URL = os.getenv("DATABASE_URL", self.DATABASE_URL)
-        
-        self.USE_WEBHOOK = os.getenv("USE_WEBHOOK", str(self.USE_WEBHOOK)).lower() == "true"
-        self.WEBHOOK_URL = os.getenv("WEBHOOK_URL", self.WEBHOOK_URL)
-        self.WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", self.WEBHOOK_SECRET)
-        
-        # تحميل قوائم المطورين والمشرفين
-        developers_str = os.getenv("DEVELOPERS", "")
-        if developers_str:
-            self.DEVELOPERS = [int(x) for x in developers_str.split(",") if x.strip()]
-        
-        admins_str = os.getenv("ADMINS", "")
-        if admins_str:
-            self.ADMINS = [int(x) for x in admins_str.split(",") if x.strip()]
-        
-        self.PREMIUM_TRIAL_HOURS = int(os.getenv("PREMIUM_TRIAL_HOURS", str(self.PREMIUM_TRIAL_HOURS)))
-        
-        notification_channel = os.getenv("NOTIFICATION_CHANNEL")
-        if notification_channel:
-            self.NOTIFICATION_CHANNEL = int(notification_channel)
-        
-        self.SPAM_PROTECTION = os.getenv("SPAM_PROTECTION", str(self.SPAM_PROTECTION)).lower() == "true"
-        self.MAX_MESSAGES_PER_MINUTE = int(os.getenv("MAX_MESSAGES_PER_MINUTE", str(self.MAX_MESSAGES_PER_MINUTE)))
-        
-        self.BACKUP_ENABLED = os.getenv("BACKUP_ENABLED", str(self.BACKUP_ENABLED)).lower() == "true"
-        self.BACKUP_INTERVAL_HOURS = int(os.getenv("BACKUP_INTERVAL_HOURS", str(self.BACKUP_INTERVAL_HOURS)))
-        
-        # التحقق من الإعدادات المطلوبة
+        """التحقق من الإعدادات المطلوبة"""
         if not self.BOT_TOKEN:
             raise ValueError("BOT_TOKEN مطلوب في متغيرات البيئة")
         
