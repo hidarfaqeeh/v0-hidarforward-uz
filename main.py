@@ -89,7 +89,7 @@ class TelegramBot:
             except:
                 pass
     
-    async def run(self):
+    def run(self):
         """تشغيل البوت"""
         if not await self.initialize():
             logger.error("❌ فشل في تهيئة البوت")
