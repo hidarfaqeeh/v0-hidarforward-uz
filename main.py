@@ -104,15 +104,19 @@ class TelegramBot:
         logger.info("🚀 بدء تشغيل البوت...")
         
         # تشغيل البوت
-        if self.settings.USE_WEBHOOK:
-            await application.run_webhook(
-                listen="0.0.0.0",
-                port=int(os.environ.get("PORT", 8443)),
-                webhook_url=self.settings.WEBHOOK_URL
-            )
-        else:
-            await application.run_polling(allowed_updates=Update.ALL_TYPES)
+        def run(self):  # ✅ أزلت async من هنا
+    # ... كود إعداد التطبيق
+    if self.settings.USE_WEBHOOK:
+        application.run_webhook(...)  # ✅ بدون await
+    else:
+        application.run_polling(...)  # ✅ بدون await
 
 if __name__ == "__main__":
     bot = TelegramBot()
-    asyncio.run(bot.run())
+    
+    # ✅ فصلت التهيئة عن التشغيل
+    async def init_bot():
+        await bot.initialize()
+    
+    asyncio.run(init_bot())  # ✅ تهيئة فقط
+    bot.run()  # ✅ تشغيل بدون asyncio.run
