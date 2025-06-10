@@ -14,7 +14,7 @@ from database.db_manager import DatabaseManager
 from handlers.admin_handler import AdminHandler
 from handlers.task_handler import TaskHandler
 from handlers.user_handler import UserHandler
-from handlers.message_handler import MessageForwarder
+from services.message_forwarder import MessageForwarder
 from handlers.webhook_handler import WebhookHandler
 from config.settings import Settings
 from utils.logger import setup_logger

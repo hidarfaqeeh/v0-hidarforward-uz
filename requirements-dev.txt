@@ -1,0 +1,32 @@
+# متطلبات التطوير - Development Requirements
+
+# الاختبارات - Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+pytest-xdist==3.5.0
+
+# تحليل الكود - Code Analysis
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+pylint==3.0.3
+
+# التوثيق - Documentation
+sphinx==7.2.6
+sphinx-rtd-theme==1.3.0
+
+# أدوات التطوير - Development Tools
+pre-commit==3.6.0
+tox==4.11.4
+bandit==1.7.5
+
+# مراقبة الأداء - Performance Monitoring
+memory-profiler==0.61.0
+line-profiler==4.1.1
+
+# أدوات إضافية - Additional Tools
+ipython==8.17.2
+jupyter==1.0.0
