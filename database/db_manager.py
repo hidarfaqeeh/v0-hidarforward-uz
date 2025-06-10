@@ -295,6 +295,220 @@ class DatabaseManager:
         query = "SELECT * FROM bot_clones WHERE owner_id = ? ORDER BY created_at DESC"
         return self.execute_query(query, (user_id,))
     
+    async def get_users_paginated(self, page: int, per_page: int) -> List[Dict]:
+        """الحصول على المستخدمين مع ترقيم الصفحات"""
+        offset = page * per_page
+        query = "SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        return self.execute_query(query, (per_page, offset))
+    
+    async def get_total_users_count(self) -> int:
+        """الحصول على إجمالي عدد المستخدمين"""
+        query = "SELECT COUNT(*) as count FROM users"
+        result = self.execute_query(query)
+        return result[0]['count'] if result else 0
+    
+    async def get_premium_users_list(self) -> List[Dict]:
+        """الحصول على قائمة مستخدمي Premium"""
+        query = "SELECT * FROM users WHERE is_premium = TRUE ORDER BY premium_expires DESC"
+        return self.execute_query(query)
+    
+    async def get_user_by_username(self, username: str) -> Optional[Dict]:
+        """البحث عن مستخدم باسم المستخدم"""
+        query = "SELECT * FROM users WHERE username = ?"
+        results = self.execute_query(query, (username,))
+        return results[0] if results else None
+    
+    async def get_all_user_ids(self) -> List[int]:
+        """الحصول على جميع معرفات المستخدمين"""
+        query = "SELECT user_id FROM users"
+        results = self.execute_query(query)
+        return [row['user_id'] for row in results]
+    
+    async def get_premium_user_ids(self) -> List[int]:
+        """الحصول على معرفات مستخدمي Premium"""
+        query = "SELECT user_id FROM users WHERE is_premium = TRUE"
+        results = self.execute_query(query)
+        return [row['user_id'] for row in results]
+    
+    async def get_free_user_ids(self) -> List[int]:
+        """الحصول على معرفات المستخدمين العاديين"""
+        query = "SELECT user_id FROM users WHERE is_premium = FALSE"
+        results = self.execute_query(query)
+        return [row['user_id'] for row in results]
+    
+    async def get_active_user_ids(self) -> List[int]:
+        """الحصول على معرفات المستخدمين النشطين"""
+        query = "SELECT user_id FROM users WHERE last_active >= datetime('now', '-7 days')"
+        results = self.execute_query(query)
+        return [row['user_id'] for row in results]
+    
+    async def deactivate_premium(self, user_id: int) -> bool:
+        """إلغاء Premium للمستخدم"""
+        query = "UPDATE users SET is_premium = FALSE, premium_expires = NULL WHERE user_id = ?"
+        return self.execute_update(query, (user_id,))
+    
+    async def get_users_stats(self) -> Dict[str, Any]:
+        """الحصول على إحصائيات المستخدمين"""
+        stats = {}
+        
+        # إجمالي المستخدمين
+        result = self.execute_query("SELECT COUNT(*) as count FROM users")
+        stats['total'] = result[0]['count'] if result else 0
+        
+        # المستخدمين النشطين (24 ساعة)
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE last_active >= datetime('now', '-1 day')")
+        stats['active_24h'] = result[0]['count'] if result else 0
+        
+        # المستخدمين النشطين (7 أيام)
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE last_active >= datetime('now', '-7 days')")
+        stats['active_7d'] = result[0]['count'] if result else 0
+        
+        # مستخدمين جدد اليوم
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE created_at >= date('now')")
+        stats['new_today'] = result[0]['count'] if result else 0
+        
+        return stats
+    
+    async def get_premium_stats(self) -> Dict[str, Any]:
+        """الحصول على إحصائيات Premium"""
+        stats = {}
+        
+        # مشتركين نشطين
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE is_premium = TRUE")
+        stats['active_premium'] = result[0]['count'] if result else 0
+        
+        # تجارب مجانية
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE trial_used = TRUE AND is_premium = FALSE")
+        stats['trial_users'] = result[0]['count'] if result else 0
+        
+        # انتهت صلاحيتهم
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE is_premium = FALSE AND premium_expires IS NOT NULL")
+        stats['expired_premium'] = result[0]['count'] if result else 0
+        
+        # اشتراكات جديدة اليوم
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE is_premium = TRUE AND created_at >= date('now')")
+        stats['new_today'] = result[0]['count'] if result else 0
+        
+        # اشتراكات هذا الأسبوع
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE is_premium = TRUE AND created_at >= date('now', '-7 days')")
+        stats['new_week'] = result[0]['count'] if result else 0
+        
+        # اشتراكات هذا الشهر
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE is_premium = TRUE AND created_at >= date('now', '-30 days')")
+        stats['new_month'] = result[0]['count'] if result else 0
+        
+        # ينتهي اليوم
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE is_premium = TRUE AND premium_expires <= date('now', '+1 day')")
+        stats['expiring_today'] = result[0]['count'] if result else 0
+        
+        # ينتهي هذا الأسبوع
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE is_premium = TRUE AND premium_expires <= date('now', '+7 days')")
+        stats['expiring_week'] = result[0]['count'] if result else 0
+        
+        # ينتهي هذا الشهر
+        result = self.execute_query("SELECT COUNT(*) as count FROM users WHERE is_premium = TRUE AND premium_expires <= date('now', '+30 days')")
+        stats['expiring_month'] = result[0]['count'] if result else 0
+        
+        # الإيرادات المتوقعة (تقديرية)
+        stats['monthly_revenue'] = stats['active_premium'] * 10  # افتراض 10$ شهرياً
+        stats['yearly_revenue'] = stats['monthly_revenue'] * 12
+        
+        return stats
+    
+    async def get_tasks_stats(self) -> Dict[str, Any]:
+        """الحصول على إحصائيات المهام"""
+        stats = {}
+        
+        # إجمالي المهام
+        result = self.execute_query("SELECT COUNT(*) as count FROM tasks")
+        stats['total'] = result[0]['count'] if result else 0
+        
+        # المهام النشطة
+        result = self.execute_query("SELECT COUNT(*) as count FROM tasks WHERE is_active = TRUE")
+        stats['active'] = result[0]['count'] if result else 0
+        
+        # المهام المتوقفة
+        stats['inactive'] = stats['total'] - stats['active']
+        
+        # متوسط المهام لكل مستخدم
+        total_users = await self.get_total_users_count()
+        stats['avg_per_user'] = stats['total'] / total_users if total_users > 0 else 0
+        
+        return stats
+    
+    async def get_forwarding_stats(self) -> Dict[str, Any]:
+        """الحصول على إحصائيات التوجيه"""
+        stats = {}
+        
+        # رسائل اليوم
+        result = self.execute_query("SELECT COUNT(*) as count FROM messages WHERE created_at >= date('now')")
+        stats['today'] = result[0]['count'] if result else 0
+        
+        # رسائل الأسبوع
+        result = self.execute_query("SELECT COUNT(*) as count FROM messages WHERE created_at >= date('now', '-7 days')")
+        stats['week'] = result[0]['count'] if result else 0
+        
+        # رسائل الشهر
+        result = self.execute_query("SELECT COUNT(*) as count FROM messages WHERE created_at >= date('now', '-30 days')")
+        stats['month'] = result[0]['count'] if result else 0
+        
+        # معدل النجاح (افتراضي 95%)
+        stats['success_rate'] = 95.0
+        
+        return stats
+    
+    async def get_user_detailed_stats(self, user_id: int) -> Dict[str, Any]:
+        """الحصول على إحصائيات مستخدم محدد"""
+        stats = {}
+        
+        # عدد المهام
+        result = self.execute_query("SELECT COUNT(*) as count FROM tasks WHERE user_id = ?", (user_id,))
+        stats['total_tasks'] = result[0]['count'] if result else 0
+        
+        # المهام النشطة
+        result = self.execute_query("SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND is_active = TRUE", (user_id,))
+        stats['active_tasks'] = result[0]['count'] if result else 0
+        
+        # الرسائل المُوجهة
+        result = self.execute_query("""
+            SELECT COUNT(*) as count FROM messages m 
+            JOIN tasks t ON m.task_id = t.id 
+            WHERE t.user_id = ?
+        """, (user_id,))
+        stats['forwarded_messages'] = result[0]['count'] if result else 0
+        
+        # معدل النجاح
+        stats['success_rate'] = 95.0  # افتراضي
+        
+        return stats
+    
+    async def ban_user(self, user_id: int, reason: str) -> bool:
+        """حظر مستخدم"""
+        query = "UPDATE users SET is_banned = TRUE, ban_reason = ? WHERE user_id = ?"
+        return self.execute_update(query, (reason, user_id))
+    
+    async def unban_user(self, user_id: int) -> bool:
+        """إلغاء حظر مستخدم"""
+        query = "UPDATE users SET is_banned = FALSE, ban_reason = NULL WHERE user_id = ?"
+        return self.execute_update(query, (user_id,))
+    
+    async def create_backup(self) -> str:
+        """إنشاء نسخة احتياطية"""
+        import shutil
+        from datetime import datetime
+        
+        backup_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+        shutil.copy2(self.db_path, backup_name)
+        return backup_name
+    
+    async def cleanup_old_data(self) -> int:
+        """تنظيف البيانات القديمة"""
+        # حذف الرسائل القديمة (أكثر من 90 يوم)
+        query = "DELETE FROM messages WHERE created_at < date('now', '-90 days')"
+        cursor = self.connection.execute(query)
+        self.connection.commit()
+        return cursor.rowcount
+    
     def close(self):
         """إغلاق الاتصال بقاعدة البيانات"""
         if self.connection:
