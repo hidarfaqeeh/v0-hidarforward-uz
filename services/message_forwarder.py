@@ -6,6 +6,7 @@ Advanced Message Forwarding Service
 import asyncio
 import json
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Union
 from telegram import Bot, Message, Update
@@ -135,9 +136,9 @@ class MessageForwarder:
             for target_chat_id in task['target_chat_ids']:
                 try:
                     if task['forward_type'] == 'forward':
-                        forwarded_msg = await self.forward_message(message, target_chat_id, task)
+                        forwarded_msg = await self.forward_message(message, target_chat_id, task, context)
                     else:
-                        forwarded_msg = await self.copy_message(message, target_chat_id, task, processed_content)
+                        forwarded_msg = await self.copy_message(message, target_chat_id, task, context, processed_content)
                     
                     if forwarded_msg:
                         successful_targets.append({
@@ -177,11 +178,11 @@ class MessageForwarder:
                 'function': 'process_forward_request'
             })
     
-    async def forward_message(self, message: Message, target_chat_id: int, task: Dict[str, Any]) -> Optional[Message]:
+    async def forward_message(self, message: Message, target_chat_id: int, task: Dict[str, Any], context: ContextTypes.DEFAULT_TYPE) -> Optional[Message]:
         """توجيه الرسالة (Forward)"""
         try:
-            # إنشاء بوت مؤقت للتوجيه
-            bot = Bot(token=task['settings'].get('bot_token', ''))
+            # استخدام البوت الحالي من context
+            bot = context.bot
             
             forwarded_message = await bot.forward_message(
                 chat_id=target_chat_id,
@@ -207,11 +208,12 @@ class MessageForwarder:
             })
             return None
     
-    async def copy_message(self, message: Message, target_chat_id: int, task: Dict[str, Any], 
+    async def copy_message(self, message: Message, target_chat_id: int, task: Dict[str, Any], context: ContextTypes.DEFAULT_TYPE,
                           processed_content: Dict[str, Any] = None) -> Optional[Message]:
         """نسخ الرسالة (Copy)"""
         try:
-            bot = Bot(token=task['settings'].get('bot_token', ''))
+            # استخدام البوت الحالي من context
+            bot = context.bot
             
             # تحديد المحتوى المُعالج
             if processed_content:
