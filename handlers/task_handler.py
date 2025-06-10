@@ -11,7 +11,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from database.db_manager import DatabaseManager
 from config.keyboards import TaskKeyboards, ConfirmationKeyboards
-from config.settings import Messages  # هذا هو الصحيح
+from config.messages import Messages  # هذا هو الصحيح
 from utils.decorators import user_required, premium_required, error_handler, rate_limit
 from utils.helpers import DataValidator, TextProcessor
 from utils.logger import BotLogger
@@ -672,19 +672,31 @@ class TaskHandler:
         
         # إذا كان اسم مستخدم
         if identifier.startswith('@'):
-            # هنا يمكن إضافة استعلام للحصول على معرف الدردشة من اسم المستخدم
-            # لكن هذا يتطلب API call للتلغرام
-            return None  # سيتم تطويرها في المرحلة التالية
+            username = identifier[1:]
+            try:
+                # محاولة الحصول على معرف الدردشة (يحتاج bot instance)
+                # سيتم تطويرها لاحقاً مع API calls
+                return None
+            except Exception:
+                return None
         
         # إذا كان رابط تلغرام
         if 't.me/' in identifier:
             username = identifier.split('/')[-1]
             if username.startswith('@'):
                 username = username[1:]
-            # نفس المشكلة - يحتاج API call
-            return None  # سيتم تطويرها في المرحلة التالية
+            try:
+                # محاولة الحصول على معرف الدردشة
+                # سيتم تطويرها لاحقاً مع API calls
+                return None
+            except Exception:
+                return None
         
-        return None
+        # محاولة تحويل مباشر للرقم
+        try:
+            return int(identifier)
+        except ValueError:
+            return None
     
     async def get_task_statistics(self, task_id: int) -> Dict[str, Any]:
         """الحصول على إحصائيات المهمة"""

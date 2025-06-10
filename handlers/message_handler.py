@@ -31,11 +31,28 @@ class MessageHandler:
     @error_handler
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """معالج الرسائل العام"""
-        if not self.initialized:
-            await self.initialize()
-        
-        # تمرير الرسالة لخدمة التوجيه
-        await self.message_forwarder.handle_message(update, context)
+        try:
+            if not self.initialized:
+                await self.initialize()
+            
+            # فحص وجود الرسالة
+            if not update.message:
+                return
+            
+            # تحديث نشاط المستخدم
+            if update.effective_user:
+                await self.db.update_user_activity(update.effective_user.id)
+            
+            # تمرير الرسالة لخدمة التوجيه
+            await self.message_forwarder.handle_message(update, context)
+            
+        except Exception as e:
+            logger.log_error(e, {
+                'function': 'handle_message',
+                'user_id': update.effective_user.id if update.effective_user else None,
+                'message_id': update.message.message_id if update.message else None,
+                'chat_id': update.message.chat_id if update.message else None
+            })
     
     @error_handler
     async def handle_edited_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
